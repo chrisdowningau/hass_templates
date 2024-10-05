@@ -1,5 +1,5 @@
 blueprint:
-  name: Occupancy Notification with Camera Snapshot and Clear Notification (Per-Device Conditions)
+  name: Occupancy Notification with Camera Snapshot and Clear Notification
   description: |
     Notify selected devices when an occupancy sensor (input_boolean, binary_sensor, or switch) turns on, send a camera snapshot, dynamically link to Lovelace page,
     and clear the notification when it turns off. Each device can have its own condition template to control when it should be notified.
