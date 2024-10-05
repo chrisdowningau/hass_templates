@@ -8,6 +8,7 @@ blueprint:
       description: Select the occupancy sensors to monitor.
       selector:
         entity:
+          multiple: true
           filter:
             - domain: binary_sensor
             - domain: input_boolean
@@ -20,7 +21,8 @@ blueprint:
         target:
           device:
             integration: mobile_app
-            manufacturer: Apple  # Filter to ensure only Apple mobile devices
+            multiple: true
+            # manufacturer: Apple  # Filter to ensure only Apple mobile devices
 
     blocked_zones:
       name: Blocked Zones
@@ -28,12 +30,7 @@ blueprint:
       selector:
         entity:
           domain: zone  # Ensure only zones are selectable
-
-    notify_conditions:
-      name: Notification Conditions
-      description: Template for conditional notifications (one for each device).
-      selector:
-        text: {}
+          multiple: true
 
 trigger:
   - platform: state
