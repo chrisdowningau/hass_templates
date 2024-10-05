@@ -19,10 +19,9 @@ blueprint:
       name: iOS Devices to Notify
       description: Select the iOS device(s) that will receive the notifications
       selector:
-        entity:
-          filter:
-            integration: mobile_app
-        multiple: true
+        device:
+          integration: mobile_app
+          multiple: true
     notify_conditions:
       name: Notification Condition Template
       description: |
