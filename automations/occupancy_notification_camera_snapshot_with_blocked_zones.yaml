@@ -18,11 +18,10 @@ blueprint:
       name: Notification Devices
       description: Devices to notify on occupancy (iOS devices).
       selector:
-        target:
-          device:
-            integration: mobile_app
-            multiple: true
-            # manufacturer: Apple  # Filter to ensure only Apple mobile devices
+        device:
+          integration: mobile_app
+          multiple: true
+          # manufacturer: Apple  # Filter to ensure only Apple mobile devices
 
     blocked_zones:
       name: Blocked Zones
