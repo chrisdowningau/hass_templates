@@ -1,0 +1,100 @@
+blueprint:
+  name: Occupancy Notification with Camera Snapshot and Clear Notification
+  description: |
+    Notify selected devices when occupancy is detected, send a camera snapshot, dynamically link to Lovelace page,
+    and clear the notification when occupancy ends. Customizable notification conditions.
+  domain: automation
+  input:
+    occupancy_sensors:
+      name: Occupancy Sensors
+      description: Select the occupancy sensor(s) that will trigger the notifications
+      selector:
+        entity:
+          domain: binary_sensor
+          multiple: true
+          device_class: motion
+    notification_devices:
+      name: iOS Devices to Notify
+      description: Select the iOS device(s) that will receive the notifications
+      selector:
+        device:
+          integration: mobile_app
+          manufacturer: Apple
+          multiple: true
+    notify_condition_template:
+      name: Notification Condition Template
+      description: A template that evaluates whether the notification should be sent. If left blank, notifications will always be sent.
+      default: "{{ true }}"  # Default is to always notify
+      selector:
+        template:
+    lovelace_area_path:
+      name: Lovelace Area Path
+      description: The Lovelace path for the camera dashboard (e.g., /lovelace/area/cameras)
+      default: "/lovelace/{{ area | lower | replace(' ', '-') }}/cameras"
+      selector:
+        text:
+    timestamp_helper:
+      name: Previous Occupancy Timestamp Helper
+      description: The input_text helper to store the previous occupancy timestamp
+      selector:
+        entity:
+          domain: input_text
+mode: single
+
+trigger:
+  - platform: state
+    entity_id: !input occupancy_sensors
+    to: "on"
+  - platform: state
+    entity_id: !input occupancy_sensors
+    to: "off"
+
+variables:
+  area: "{{ area_name(trigger.entity_id) }}"
+  timestamp: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+  camera_entity: >
+    {{ area_entities(area) | select('search', 'camera') | first }}
+
+condition:
+  - condition: template
+    value_template: !input notify_condition_template
+
+action:
+  - choose:
+      # When occupancy is detected
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.to_state.state == 'on' }}"
+        sequence:
+          - device_id: !input notification_devices
+            domain: mobile_app
+            type: notify
+            message: "Occupancy detected in {{ area }} at {{ timestamp }}."
+            data:
+              push:
+                thread-id: "occupancy_{{ area | lower | replace(' ', '_') }}"  # Thread ID to group notifications
+                id: "occupancy_{{ area | lower | replace(' ', '_') }}"  # Unique notification ID
+              image: "{{ state_attr(camera_entity, 'entity_picture') }}"  # Camera snapshot
+              clickAction: !input lovelace_area_path  # Dynamic Lovelace link
+          - service: input_text.set_value  # Save the timestamp for when occupancy was detected
+            data:
+              entity_id: !input timestamp_helper
+              value: "{{ timestamp }}"
+
+      # When occupancy is cleared
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.to_state.state == 'off' }}"
+        sequence:
+          - variables:
+              previous_timestamp: "{{ states('!input timestamp_helper') }}"
+          - device_id: !input notification_devices
+            domain: mobile_app
+            type: notify
+            message: "The previous occupancy at {{ previous_timestamp }} in {{ area }} has now cleared."
+            data:
+              push:
+                thread-id: "occupancy_{{ area | lower | replace(' ', '_') }}"  # Same thread ID to clear previous notification
+                id: "occupancy_{{ area | lower | replace(' ', '_') }}"  # Same notification ID to clear
+              image: "{{ state_attr(camera_entity, 'entity_picture') }}"  # Camera snapshot
+              clickAction: !input lovelace_area_path  # Dynamic Lovelace link
