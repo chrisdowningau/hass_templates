@@ -20,7 +20,7 @@ blueprint:
       selector:
         device:
           integration: mobile_app
-          multiple: true
+        multiple: true
           # manufacturer: Apple  # Filter to ensure only Apple mobile devices
 
     blocked_zones:
