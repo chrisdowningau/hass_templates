@@ -30,7 +30,7 @@ blueprint:
         If left blank, notifications will always be sent.
       default: "{{ true }}"  # Always notify by default
       selector:
-        text
+        template  # Allows templates for more complex logic
 mode: single
 
 trigger:
