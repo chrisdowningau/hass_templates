@@ -3,17 +3,18 @@ blueprint:
   name: Occupancy Notification with Camera Snapshot and Clear Notification
   description: >
     Notify selected devices when occupancy is detected, send a camera
-    snapshot, dynamically link to Lovelace page,
-    and clear the notification when occupancy ends. Customizable notification conditions.
+    snapshot, dynamically link to Lovelace page, and clear the notification when
+    occupancy ends. Customizable notification conditions.
   domain: automation
   input:
     occupancy_sensors:
       name: Occupancy Entities
-      description: Select the entity/entities that will trigger the notifications (should toggle between 'on' and 'off')
+      description: Select the entity/entities that will trigger the notifications
+        (should toggle between 'on' and 'off')
       selector:
         entity:
           multiple: true
-          domain: switch, binary_sensor, input_boolean  # Include entities that can have 'on' and 'off' states
+          domain: switch, binary_sensor, input_boolean
     notification_devices:
       name: iOS Devices to Notify
       description: Select the iOS device(s) that will receive the notifications
@@ -32,7 +33,7 @@ blueprint:
     lovelace_area_path:
       name: Lovelace Area Path
       description: The Lovelace path for the camera dashboard (e.g., /lovelace/area/cameras)
-      default: /lovelace/{{ area | lower | replace(' ', '-') }}/cameras
+      default: /lovelace/cameras/{{ area | lower | replace(' ', '-') }}
       selector:
         text: null
 mode: single
