@@ -1,0 +1,100 @@
+blueprint:
+  name: Occupancy Notification with Camera Snapshot
+  description: Sends notifications based on occupancy sensor states, includes camera snapshot.
+  domain: automation
+  input:
+    motion_sensor:
+      name: Occupancy Sensor
+      description: Select the occupancy sensors to monitor.
+      selector:
+        entity:
+          filter:
+            - domain: binary_sensor
+            - domain: input_boolean
+            - domain: switch
+
+    notification_devices:
+      name: Notification Devices
+      description: Devices to notify on occupancy (iOS devices).
+      selector:
+        target:
+          device:
+            integration: mobile_app
+            manufacturer: Apple  # Filter to ensure only Apple mobile devices
+
+    blocked_zones:
+      name: Blocked Zones
+      description: Select zones to block notifications when occupancy is detected.
+      selector:
+        entity:
+          domain: zone  # Ensure only zones are selectable
+
+    notify_conditions:
+      name: Notification Conditions
+      description: Template for conditional notifications (one for each device).
+      selector:
+        text: {}
+
+trigger:
+  - platform: state
+    entity_id: !input motion_sensor
+
+action:
+  - choose:
+      # When entity turns 'on'
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.to_state.state == 'on' }}"
+        sequence:
+          # Check the specified zones
+          - variables:
+              devices_in_blocked_zones: >
+                {{ states | selectattr('state', 'in', [!input.blocked_zones]) | map(attribute='entity_id') | list }}
+              area: "{{ state_attr(trigger.entity_id, 'area') }}"  # Get the area of the triggering sensor
+
+          - choose:
+              # Notify devices not in the blocked zones
+              - conditions:
+                  - condition: template
+                    value_template: "{{ devices_in_blocked_zones | length == 0 }}"
+                sequence:
+                  - repeat:
+                      count: "{{ (input.notification_devices | length) }}"
+                      sequence:
+                        - variables:
+                            current_device: "{{ input.notification_devices[repeat.index - 1] | replace('entity_id:', '') | replace('device_tracker.', '') }}"
+                        - service: "notify.mobile_app_{{ current_device }}"
+                          data:
+                            title: "Occupancy Alert"
+                            message: "Occupancy detected in {{ area }}."
+                            data:
+                              push:
+                                thread-id: "occupancy_{{ area | lower | replace(' ', '_') }}"
+                                id: "occupancy_{{ area | lower | replace(' ', '_') }}"
+                              image: "{{ state_attr(camera_entity, 'entity_picture') }}"
+                              clickAction: "{{ lovelace_path }}"
+
+              # If devices are in blocked zones, do not send notifications
+              - conditions:
+                  - condition: template
+                    value_template: "{{ devices_in_blocked_zones | length > 0 }}"
+                sequence:
+                  - service: logbook.log
+                    data:
+                      name: "Occupancy Notification"
+                      message: "Occupancy detected in {{ area }}, but notifications are blocked due to blocked zones."
+
+      # When entity turns 'off'
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.to_state.state == 'off' }}"
+        sequence:
+          # Notify for clearing occupancy logic...
+          - service: "notify.mobile_app_{{ current_device }}"
+            data:
+              title: "Occupancy Cleared"
+              message: "The previous occupancy in {{ area }} at {{ timestamp }} has now cleared."
+              data:
+                push:
+                  thread-id: "occupancy_{{ area | lower | replace(' ', '_') }}"
+                  id: "occupancy_{{ area | lower | replace(' ', '_') }}"
