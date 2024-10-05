@@ -11,9 +11,8 @@ blueprint:
       selector:
         entity:
           filter:
-            - domain: input_boolean
-            - domain: binary_sensor
-            - domain: switch
+            - device_class: motion 
+            - device_class: occupancy
           multiple: true  # Allow selecting multiple sensors
     notification_devices:
       name: iOS Devices to Notify
@@ -30,7 +29,7 @@ blueprint:
         If left blank, notifications will always be sent.
       default: "{{ true }}"  # Always notify by default
       selector:
-        template  # Allows templates for more complex logic
+        template:  # Allows templates for more complex logic
 mode: single
 
 trigger:
