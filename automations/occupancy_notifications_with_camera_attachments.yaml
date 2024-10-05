@@ -11,16 +11,16 @@ blueprint:
       selector:
         entity:
           filter:
-            - device_class: motion 
-            - device_class: occupancy
+            - domain: input_boolean
+            - domain: binary_sensor
+            - domain: switch
           multiple: true  # Allow selecting multiple sensors
     notification_devices:
       name: iOS Devices to Notify
       description: Select the iOS device(s) that will receive the notifications
       selector:
-        device:
+        entity:
           integration: mobile_app
-          manufacturer: Apple
           multiple: true
     notify_conditions:
       name: Notification Condition Template
@@ -29,7 +29,7 @@ blueprint:
         If left blank, notifications will always be sent.
       default: "{{ true }}"  # Always notify by default
       selector:
-        template:  # Allows templates for more complex logic
+        template  # Allows templates for more complex logic
 mode: single
 
 trigger:
@@ -59,22 +59,21 @@ action:
               count: "{{ (input.notification_devices | length) }}"
               sequence:
                 - variables:
-                    current_device: "{{ input.notification_devices[repeat.index - 1] }}"
+                    current_device: "{{ input.notification_devices[repeat.index - 1] | replace('entity_id:', '') | replace('device_tracker.', '') }}"
                 - choose:
                     - conditions:
                         - condition: template
                           value_template: "{{ input.notify_conditions }}"  # Check condition template
                       sequence:
-                        - device_id: "{{ current_device }}"
-                          domain: mobile_app
-                          type: notify
-                          message: "Occupancy detected in {{ area }} at {{ timestamp }}."
+                        - service: "notify.mobile_app_{{ current_device }}"
                           data:
-                            push:
-                              thread-id: "occupancy_{{ area | lower | replace(' ', '_') }}"  # Thread ID to group notifications
-                              id: "occupancy_{{ area | lower | replace(' ', '_') }}"  # Unique notification ID
-                            image: "{{ state_attr(camera_entity, 'entity_picture') }}"  # Camera snapshot
-                            clickAction: "{{ lovelace_path }}"  # Dynamic Lovelace link
+                            message: "Occupancy detected in {{ area }} at {{ timestamp }}."
+                            data:
+                              push:
+                                thread-id: "occupancy_{{ area | lower | replace(' ', '_') }}"  # Thread ID to group notifications
+                                id: "occupancy_{{ area | lower | replace(' ', '_') }}"  # Unique notification ID
+                              image: "{{ state_attr(camera_entity, 'entity_picture') }}"  # Camera snapshot
+                              clickAction: "{{ lovelace_path }}"  # Dynamic Lovelace link
 
       # When entity turns 'off'
       - conditions:
@@ -86,19 +85,18 @@ action:
               count: "{{ (input.notification_devices | length) }}"
               sequence:
                 - variables:
-                    current_device: "{{ input.notification_devices[repeat.index - 1] }}"
+                    current_device: "{{ input.notification_devices[repeat.index - 1] | replace('entity_id:', '') | replace('device_tracker.', '') }}"
                 - choose:
                     - conditions:
                         - condition: template
                           value_template: "{{ input.notify_conditions }}"  # Check condition template
                       sequence:
-                        - device_id: "{{ current_device }}"
-                          domain: mobile_app
-                          type: notify
-                          message: "The previous occupancy at {{ timestamp }} in {{ area }} has now cleared."
+                        - service: "notify.mobile_app_{{ current_device }}"
                           data:
-                            push:
-                              thread-id: "occupancy_{{ area | lower | replace(' ', '_') }}"  # Same thread ID to clear previous notification
-                              id: "occupancy_{{ area | lower | replace(' ', '_') }}"  # Same notification ID to clear
-                            image: "{{ state_attr(camera_entity, 'entity_picture') }}"  # Camera snapshot
-                            clickAction: "{{ lovelace_path }}"  # Dynamic Lovelace link
+                            message: "The previous occupancy at {{ timestamp }} in {{ area }} has now cleared."
+                            data:
+                              push:
+                                thread-id: "occupancy_{{ area | lower | replace(' ', '_') }}"  # Same thread ID to clear previous notification
+                                id: "occupancy_{{ area | lower | replace(' ', '_') }}"  # Same notification ID to clear
+                              image: "{{ state_attr(camera_entity, 'entity_picture') }}"  # Camera snapshot
+                              clickAction: "{{ lovelace_path }}"  # Dynamic Lovelace link
