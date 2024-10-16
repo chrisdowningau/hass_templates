@@ -1,0 +1,96 @@
+blueprint:
+  name: Room Occupancy with Motion, Espresense, and Custom Timers
+  description: |
+    Detect room occupancy using a motion sensor as the primary detector and Espresense as a secondary sensor. 
+    After motion stops, the automation relies on Espresense to determine if the room is still occupied. 
+    If neither motion nor Espresense detect occupancy, the room will be marked as unoccupied after a timeout. 
+    You can choose your motion sensor, Espresense sensor, and custom timer entity.
+  domain: automation
+  input:
+    motion_sensor:
+      name: Motion Sensor
+      description: Select the motion sensor to use for detecting movement.
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: motion
+          
+    espresense_sensor:
+      name: Espresense Sensor
+      description: Select the Espresense sensor to use for detecting presence.
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: presence
+          
+    motion_timeout:
+      name: Motion Timeout
+      description: How long to wait after motion stops before checking Espresense.
+      default: 60
+      selector:
+        number:
+          min: 10
+          max: 600
+          unit_of_measurement: seconds
+          mode: slider
+
+    motion_timer:
+      name: Motion Timeout Timer
+      description: Select the timer entity to use for motion timeout.
+      selector:
+        entity:
+          domain: timer
+
+trigger:
+  - platform: state
+    entity_id: !input motion_sensor
+    to: 'on'
+
+action:
+  # When motion is detected, mark the room as occupied and start the motion timer
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.room_occupied
+  - service: timer.start
+    target:
+      entity_id: !input motion_timer
+    data:
+      duration: "{{ input.motion_timeout }}"
+
+# When motion stops, start the countdown timer to check Espresense
+trigger:
+  - platform: state
+    entity_id: !input motion_sensor
+    to: 'off'
+    
+action:
+  - service: timer.start
+    target:
+      entity_id: !input motion_timer
+    data:
+      duration: "{{ input.motion_timeout }}"
+
+# After the motion timeout finishes, check Espresense to see if the room is still occupied
+trigger:
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input motion_timer
+      
+condition: []
+action:
+  - choose:
+      # If Espresense detects presence, keep the room marked as occupied
+      - conditions:
+          - condition: state
+            entity_id: !input espresense_sensor
+            state: 'on'
+        sequence:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.room_occupied
+    default:
+      # If no presence is detected, mark the room as unoccupied
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.room_occupied
