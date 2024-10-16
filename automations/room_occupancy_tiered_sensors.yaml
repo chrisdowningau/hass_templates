@@ -1,6 +1,7 @@
 blueprint:
   name: Room Occupancy with Motion, Espresense, and Custom Timers 0.2
   description: |
+    Version 0.2
     Detect room occupancy using a motion sensor as the primary detector and Espresense as a secondary sensor. 
     After motion stops, the automation relies on Espresense to determine if the room is still occupied. 
     If neither motion nor Espresense detect occupancy, the room will be marked as unoccupied after a timeout. 
