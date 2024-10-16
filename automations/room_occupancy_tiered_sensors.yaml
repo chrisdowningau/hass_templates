@@ -1,5 +1,5 @@
 blueprint:
-  name: Room Occupancy with Motion, Espresense, Custom Timers, and Input Boolean - 1.3.0
+  name: Room Occupancy with Motion, Espresense, Custom Timers, and Input Boolean - 1.3.1
   description: |
     Detect room occupancy using a motion sensor or occupancy sensor as the primary detector and Espresense as a secondary sensor. 
     After motion stops, the automation relies on Espresense to determine if the room is still occupied. 
@@ -12,6 +12,7 @@ blueprint:
   # Version 1.2.0 - Added support for customizable input_boolean to track room occupancy.
   # Version 1.2.1 - Minor cleanup and comments for better readability.
   # Version 1.3.0 - Allowed motion sensor input to also accept occupancy sensors.
+  # Version 1.3.1 - Allowed espresence sensor input to also accept occupancy and motion sensors.
 
   domain: automation
   input:
@@ -31,7 +32,10 @@ blueprint:
       selector:
         entity:
           domain: binary_sensor
-          device_class: presence
+          device_class: 
+            - presence
+            - motion
+            - occupancy
           
     motion_timeout:
       name: Motion Timeout
